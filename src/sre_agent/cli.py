@@ -20,8 +20,8 @@ from .report import (
     render_timeline,
     summarize,
 )
-from .signals.github import GitHubAdapter
 from .signals.supabase import SupabaseAdapter
+from .signals.timeline import gather_changes, has_change_source
 
 _CONFIG_OPTION = click.option(
     "--config", "config_path",
@@ -87,14 +87,15 @@ def changes(config_path: Path) -> None:
     Sai com código 1 se houver deploy com falha na janela configurada.
     """
     config = Config.load(config_path)
-    if not config.github or not config.github.repos:
+    if not has_change_source(config):
         click.echo(
-            "Configure a seção 'github' (token + repos) em " + str(config_path),
+            "Configure ao menos uma fonte de mudanças (github, vercel ou railway) em "
+            + str(config_path),
             err=True,
         )
         raise SystemExit(2)
 
-    events = asyncio.run(GitHubAdapter(config.github).fetch_changes())
+    events = asyncio.run(gather_changes(config))
     render_timeline(events)
     print_changes_summary(events)
 

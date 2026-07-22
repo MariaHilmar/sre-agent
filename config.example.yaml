@@ -55,3 +55,16 @@ supabase:
   projects:
     - abcdefghijklmnopqrst   # project ref
   base_url: https://api.supabase.com
+
+# Fase 1 — status de deploy do front (Vercel). Entra na linha do tempo (`changes`).
+vercel:
+  token: ${VERCEL_TOKEN}
+  projects:
+    - prj_xxxxxxxxxxxxxxxx   # project id
+  team_id: ""                # opcional
+
+# Fase 1 — status de deploy do backend (Railway). Entra na linha do tempo.
+railway:
+  token: ${RAILWAY_TOKEN}
+  services:
+    - svc_xxxxxxxxxxxxxxxx   # service id

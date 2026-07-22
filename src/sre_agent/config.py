@@ -66,12 +66,32 @@ class SupabaseConfig:
 
 
 @dataclass
+class VercelConfig:
+    """Configuração do adapter Vercel (Fase 1)."""
+
+    token: str = ""
+    projects: list[str] = field(default_factory=list)  # project ids ou nomes
+    team_id: str = ""
+
+
+@dataclass
+class RailwayConfig:
+    """Configuração do adapter Railway (Fase 1)."""
+
+    token: str = ""
+    services: list[str] = field(default_factory=list)  # service ids
+    base_url: str = "https://backboard.railway.com/graphql/v2"
+
+
+@dataclass
 class Config:
     targets: list[Target]
     default_timeout: int = 10
     default_health_path: str = "/health"
     github: GitHubConfig | None = None
     supabase: SupabaseConfig | None = None
+    vercel: VercelConfig | None = None
+    railway: RailwayConfig | None = None
 
     @classmethod
     def load(cls, path: str | Path) -> "Config":
@@ -111,10 +131,30 @@ class Config:
                 base_url=sb_raw.get("base_url", "https://api.supabase.com"),
             )
 
+        vercel = None
+        vc_raw = raw.get("vercel")
+        if vc_raw:
+            vercel = VercelConfig(
+                token=vc_raw.get("token", ""),
+                projects=list(vc_raw.get("projects") or []),
+                team_id=vc_raw.get("team_id", ""),
+            )
+
+        railway = None
+        rw_raw = raw.get("railway")
+        if rw_raw:
+            railway = RailwayConfig(
+                token=rw_raw.get("token", ""),
+                services=list(rw_raw.get("services") or []),
+                base_url=rw_raw.get("base_url", "https://backboard.railway.com/graphql/v2"),
+            )
+
         return cls(
             targets=targets,
             default_timeout=defaults.get("timeout_seconds", 10),
             default_health_path=defaults.get("health_path", "/health"),
             github=github,
             supabase=supabase,
+            vercel=vercel,
+            railway=railway,
         )
