@@ -20,7 +20,7 @@ dependencies = [
 
 [project.optional-dependencies]
 rca = ["anthropic>=0.40"]  # necessário só para o comando `diagnose` (RCA por LLM)
-dev = ["pytest>=8.0", "pytest-asyncio>=0.23", "respx>=0.21"]
+dev = ["pytest>=8.0", "pytest-asyncio>=1.4.0", "respx>=0.21"]
 
 [project.urls]
 Homepage = "https://github.com/MariaHilmar/sre-agent"
