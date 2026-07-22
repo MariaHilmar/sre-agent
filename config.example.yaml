@@ -68,3 +68,13 @@ railway:
   token: ${RAILWAY_TOKEN}
   services:
     - svc_xxxxxxxxxxxxxxxx   # service id
+
+# Fase 1 — motor de RCA (LLM). Usado por `sre-agent diagnose`.
+# Requer: pip install "sre-agent[rca]" e a variável ANTHROPIC_API_KEY.
+llm:
+  provider: anthropic
+  model: claude-sonnet-5
+
+# Fase 1 — memória de incidentes (SQLite local, zero config).
+memory:
+  path: incidents.db

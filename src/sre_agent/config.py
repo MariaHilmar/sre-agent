@@ -84,6 +84,22 @@ class RailwayConfig:
 
 
 @dataclass
+class LLMConfig:
+    """Configuração do motor de RCA (Fase 1)."""
+
+    provider: str = "anthropic"
+    model: str = "claude-sonnet-5"
+    api_key: str = ""  # vazio = SDK lê ANTHROPIC_API_KEY do ambiente
+
+
+@dataclass
+class MemoryConfig:
+    """Configuração da memória de incidentes (Fase 1)."""
+
+    path: str = "incidents.db"
+
+
+@dataclass
 class Config:
     targets: list[Target]
     default_timeout: int = 10
@@ -92,6 +108,8 @@ class Config:
     supabase: SupabaseConfig | None = None
     vercel: VercelConfig | None = None
     railway: RailwayConfig | None = None
+    llm: LLMConfig = field(default_factory=LLMConfig)
+    memory: MemoryConfig = field(default_factory=MemoryConfig)
 
     @classmethod
     def load(cls, path: str | Path) -> "Config":
@@ -149,6 +167,16 @@ class Config:
                 base_url=rw_raw.get("base_url", "https://backboard.railway.com/graphql/v2"),
             )
 
+        llm_raw = raw.get("llm") or {}
+        llm = LLMConfig(
+            provider=llm_raw.get("provider", "anthropic"),
+            model=llm_raw.get("model", "claude-sonnet-5"),
+            api_key=llm_raw.get("api_key", ""),
+        )
+
+        mem_raw = raw.get("memory") or {}
+        memory = MemoryConfig(path=mem_raw.get("path", "incidents.db"))
+
         return cls(
             targets=targets,
             default_timeout=defaults.get("timeout_seconds", 10),
@@ -157,4 +185,6 @@ class Config:
             supabase=supabase,
             vercel=vercel,
             railway=railway,
+            llm=llm,
+            memory=memory,
         )

@@ -128,3 +128,16 @@ class Advisory:
     title: str
     detail: str = ""
     url: str = ""
+
+
+@dataclass
+class Incident:
+    """Um incidente registrado na memória do agente (base do RCA histórico)."""
+
+    service: str
+    status: str        # "down" | "degraded"
+    summary: str       # evidência resumida no momento do incidente
+    root_cause: str = ""  # hipótese de causa raiz (do RCA)
+    resolved: bool = False
+    created_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
+    id: int | None = None

@@ -4,6 +4,10 @@ config.yaml
 *.env
 !.env.example
 
+# === Memória de incidentes (dados locais) ===
+*.db
+incidents.db
+
 # === Python ===
 __pycache__/
 *.py[cod]

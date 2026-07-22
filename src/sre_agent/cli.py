@@ -11,6 +11,10 @@ import click
 from . import __version__
 from .agent import run_checks
 from .config import Config
+from .llm import build_llm
+from .memory import IncidentStore
+from .models import Incident
+from .rca import diagnose, evidence_summary, gather_evidence
 from .report import (
     print_advisories_summary,
     print_changes_summary,
@@ -124,3 +128,53 @@ def advisors(config_path: Path) -> None:
 
     has_error = any(a.level.is_alertable for a in advisories)
     raise SystemExit(1 if has_error else 0)
+
+
+@main.command("diagnose")
+@_CONFIG_OPTION
+@click.option(
+    "--record/--no-record", default=True,
+    help="Registrar os incidentes diagnosticados na memória (default: sim).",
+)
+def diagnose_cmd(config_path: Path, record: bool) -> None:
+    """Diagnostica a causa raiz dos serviços com falha (RCA assistido por LLM).
+
+    Roda o health check; para cada serviço DOWN/DEGRADED, reúne a evidência
+    (mudanças, advisors, incidentes passados) e pede ao LLM a causa raiz.
+    """
+    config = Config.load(config_path)
+    if not config.targets:
+        click.echo("Nenhum target configurado em " + str(config_path), err=True)
+        raise SystemExit(2)
+
+    report = asyncio.run(run_checks(config))
+    if not report.has_failures:
+        click.echo("Tudo saudável — nada a diagnosticar.")
+        raise SystemExit(0)
+
+    store = IncidentStore(config.memory.path)
+    try:
+        evidences = asyncio.run(gather_evidence(config, report, store))
+        try:
+            llm = build_llm(config.llm)
+        except RuntimeError as exc:
+            click.echo(str(exc), err=True)
+            raise SystemExit(2)
+
+        for ev in evidences:
+            click.echo(f"\n=== RCA · {ev.service.name} ({ev.service.status.value}) ===")
+            root_cause = diagnose(ev, llm)
+            click.echo(root_cause)
+            if record:
+                store.record(
+                    Incident(
+                        service=ev.service.name,
+                        status=ev.service.status.value,
+                        summary=evidence_summary(ev),
+                        root_cause=root_cause,
+                    )
+                )
+    finally:
+        store.close()
+
+    raise SystemExit(1)

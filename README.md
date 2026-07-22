@@ -24,11 +24,16 @@ breve) por quê.**
 
 ---
 
-## Fase atual: 0 — Monitor de saúde
+## O que faz hoje (Fases 0 e 1)
 
-Verifica, em paralelo, o endpoint de health de cada serviço configurado:
-valida o status HTTP e (opcionalmente) o corpo JSON, mede a latência e emite
-um relatório com código de saída pronto para CI/cron.
+Monitora a saúde dos serviços, monta a linha do tempo de mudanças (deploys +
+merges via GitHub/Vercel/Railway), lê os advisors do banco (Supabase) e, quando
+algo cai, diagnostica a causa raiz com Claude — usando o histórico de incidentes
+como contexto.
+
+O exemplo abaixo é o health check (Fase 0), que verifica em paralelo o endpoint
+de cada serviço, valida o status HTTP e (opcionalmente) o corpo JSON, mede a
+latência e emite um relatório com código de saída pronto para CI/cron.
 
 ```
 $ sre-agent check
@@ -63,7 +68,12 @@ cp config.example.yaml config.yaml
 sre-agent check                 # saúde dos serviços (Fase 0)
 sre-agent check --json          # saída JSON para automação
 sre-agent changes               # linha do tempo de deploys e merges (Fase 1)
+sre-agent advisors              # advisors de saúde do banco (Fase 1)
+sre-agent diagnose              # RCA por LLM dos serviços com falha (Fase 1)
 ```
+
+> `diagnose` precisa do extra de RCA e de uma chave: `pip install "sre-agent[rca]"`
+> e `ANTHROPIC_API_KEY` no ambiente.
 
 Configura-se **editando dados** (`config.yaml`), nunca o código:
 
@@ -114,11 +124,12 @@ uniforme. Adicionar uma plataforma = escrever um adapter, sem tocar no núcleo.
 ## Roadmap
 
 - [x] **Fase 0 — Monitor de saúde**: health check HTTP paralelo, relatório, exit code para CI.
-- [ ] **Fase 1 — RCA assistido por LLM**
+- [x] **Fase 1 — RCA assistido por LLM**
   - [x] 1.1 — adapter GitHub: linha do tempo de mudanças (deploys + merges), deploy com falha é alertável (`sre-agent changes`).
   - [x] 1.2 — adapter Supabase: advisors de saúde do banco, nível ERROR é alertável (`sre-agent advisors`).
   - [x] 1.3 — adapters Railway (GraphQL) + Vercel (REST): status de deploy unificado na linha do tempo.
-  - [ ] 1.4 — loop de RCA · 1.5 — memória de incidentes.
+  - [x] 1.4 — loop de RCA: reúne evidência (mudanças + advisors + histórico) e diagnostica com Claude (`sre-agent diagnose`).
+  - [x] 1.5 — memória de incidentes: histórico em SQLite, recuperado como contexto no RCA.
 - [ ] **Fase 2 — Notificação + human-in-the-loop**: Slack, agendamento, fila de aprovação.
 - [ ] **Fase 3 — Multiagente + painel**: agentes especialistas, orquestrador, painel de controle (timeline, MTTR).
 
