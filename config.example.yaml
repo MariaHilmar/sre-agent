@@ -47,3 +47,11 @@ github:
     - meu-org/minha-api
     - meu-org/meu-front
   lookback_hours: 24
+
+# Fase 1 — advisors de saúde do banco (segurança + performance) via Supabase.
+# Usado pelo comando `sre-agent advisors`. Precisa de um Personal Access Token.
+supabase:
+  access_token: ${SUPABASE_ACCESS_TOKEN}
+  projects:
+    - abcdefghijklmnopqrst   # project ref
+  base_url: https://api.supabase.com

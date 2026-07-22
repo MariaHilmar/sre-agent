@@ -103,3 +103,28 @@ class ChangeEvent:
     def is_failed_deploy(self) -> bool:
         """Único caso alertável: um deploy que falhou."""
         return self.kind is ChangeKind.DEPLOY and self.ok is False
+
+
+class AdvisoryLevel(str, Enum):
+    """Severidade de um advisory (lint) do Supabase."""
+
+    ERROR = "error"
+    WARN = "warn"
+    INFO = "info"
+
+    @property
+    def is_alertable(self) -> bool:
+        return self is AdvisoryLevel.ERROR
+
+
+@dataclass
+class Advisory:
+    """Um alerta de saúde do banco (segurança ou performance) do Supabase."""
+
+    project: str
+    level: AdvisoryLevel
+    category: str  # "security" | "performance"
+    name: str
+    title: str
+    detail: str = ""
+    url: str = ""

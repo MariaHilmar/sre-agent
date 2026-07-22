@@ -116,8 +116,9 @@ uniforme. Adicionar uma plataforma = escrever um adapter, sem tocar no núcleo.
 - [x] **Fase 0 — Monitor de saúde**: health check HTTP paralelo, relatório, exit code para CI.
 - [ ] **Fase 1 — RCA assistido por LLM**
   - [x] 1.1 — adapter GitHub: linha do tempo de mudanças (deploys + merges), deploy com falha é alertável (`sre-agent changes`).
-  - [ ] 1.2 — adapter Supabase (logs + advisors) · 1.3 — Railway/Vercel · 1.4 — loop de RCA · 1.5 — memória de incidentes.
-- [ ] **Fase 2 — Notificação + human-in-the-loop**: Slack/Telegram, agendamento, fila de aprovação.
+  - [x] 1.2 — adapter Supabase: advisors de saúde do banco, nível ERROR é alertável (`sre-agent advisors`).
+  - [ ] 1.3 — Railway/Vercel · 1.4 — loop de RCA · 1.5 — memória de incidentes.
+- [ ] **Fase 2 — Notificação + human-in-the-loop**: Slack, agendamento, fila de aprovação.
 - [ ] **Fase 3 — Multiagente + painel**: agentes especialistas, orquestrador, painel de controle (timeline, MTTR).
 
 ---

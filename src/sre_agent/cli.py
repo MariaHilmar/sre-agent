@@ -12,13 +12,16 @@ from . import __version__
 from .agent import run_checks
 from .config import Config
 from .report import (
+    print_advisories_summary,
     print_changes_summary,
     print_summary,
+    render_advisories,
     render_table,
     render_timeline,
     summarize,
 )
 from .signals.github import GitHubAdapter
+from .signals.supabase import SupabaseAdapter
 
 _CONFIG_OPTION = click.option(
     "--config", "config_path",
@@ -97,3 +100,26 @@ def changes(config_path: Path) -> None:
 
     failed = any(e.is_failed_deploy for e in events)
     raise SystemExit(1 if failed else 0)
+
+
+@main.command()
+@_CONFIG_OPTION
+def advisors(config_path: Path) -> None:
+    """Mostra os advisors de saúde do banco (Supabase).
+
+    Sai com código 1 se houver advisor de nível ERROR.
+    """
+    config = Config.load(config_path)
+    if not config.supabase or not config.supabase.projects:
+        click.echo(
+            "Configure a seção 'supabase' (access_token + projects) em " + str(config_path),
+            err=True,
+        )
+        raise SystemExit(2)
+
+    advisories = asyncio.run(SupabaseAdapter(config.supabase).fetch_advisories())
+    render_advisories(advisories)
+    print_advisories_summary(advisories)
+
+    has_error = any(a.level.is_alertable for a in advisories)
+    raise SystemExit(1 if has_error else 0)

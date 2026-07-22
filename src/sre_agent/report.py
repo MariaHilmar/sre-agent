@@ -13,7 +13,14 @@ from functools import lru_cache
 from rich.console import Console
 from rich.table import Table
 
-from .models import ChangeEvent, ChangeKind, HealthReport, HealthStatus
+from .models import (
+    Advisory,
+    AdvisoryLevel,
+    ChangeEvent,
+    ChangeKind,
+    HealthReport,
+    HealthStatus,
+)
 
 _console = Console()
 
@@ -140,6 +147,53 @@ def print_changes_summary(events: list[ChangeEvent]) -> None:
     _console.print()
     _console.print(f"[bold {color}]{summarize_changes(events).splitlines()[0]}[/]")
     for line in summarize_changes(events).splitlines()[1:]:
+        _console.print(line)
+
+
+_ADVISORY_COLOR = {
+    AdvisoryLevel.ERROR: "red",
+    AdvisoryLevel.WARN: "yellow",
+    AdvisoryLevel.INFO: "white",
+}
+
+
+def render_advisories(advisories: list[Advisory]) -> None:
+    table = Table(title="sre-agent · advisors do banco (Supabase)")
+    table.add_column("Nível")
+    table.add_column("Categoria")
+    table.add_column("Projeto")
+    table.add_column("Advisory", style="bold")
+
+    for a in advisories:
+        table.add_row(
+            f"[{_ADVISORY_COLOR[a.level]}]{a.level.value}[/]",
+            a.category,
+            a.project,
+            a.title,
+        )
+    _console.print(table)
+
+
+def summarize_advisories(advisories: list[Advisory]) -> str:
+    errors = [a for a in advisories if a.level.is_alertable]
+    total = len(advisories)
+    lines = [f"{total} advisors ({len(errors)} de nível ERROR)."]
+    if errors:
+        lines.append(
+            "ERROS: " + ", ".join(f"{a.project}/{a.name}" for a in errors)
+        )
+    else:
+        lines.append("Nenhum advisor de nível ERROR.")
+    return "\n".join(lines)
+
+
+def print_advisories_summary(advisories: list[Advisory]) -> None:
+    errors = [a for a in advisories if a.level.is_alertable]
+    color = "red" if errors else "green"
+    summary = summarize_advisories(advisories)
+    _console.print()
+    _console.print(f"[bold {color}]{summary.splitlines()[0]}[/]")
+    for line in summary.splitlines()[1:]:
         _console.print(line)
 
 

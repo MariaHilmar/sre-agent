@@ -57,11 +57,21 @@ class GitHubConfig:
 
 
 @dataclass
+class SupabaseConfig:
+    """Configuração do adapter Supabase (Fase 1)."""
+
+    access_token: str = ""
+    projects: list[str] = field(default_factory=list)  # project refs
+    base_url: str = "https://api.supabase.com"
+
+
+@dataclass
 class Config:
     targets: list[Target]
     default_timeout: int = 10
     default_health_path: str = "/health"
     github: GitHubConfig | None = None
+    supabase: SupabaseConfig | None = None
 
     @classmethod
     def load(cls, path: str | Path) -> "Config":
@@ -92,9 +102,19 @@ class Config:
                 lookback_hours=gh_raw.get("lookback_hours", 24),
             )
 
+        supabase = None
+        sb_raw = raw.get("supabase")
+        if sb_raw:
+            supabase = SupabaseConfig(
+                access_token=sb_raw.get("access_token", ""),
+                projects=list(sb_raw.get("projects") or []),
+                base_url=sb_raw.get("base_url", "https://api.supabase.com"),
+            )
+
         return cls(
             targets=targets,
             default_timeout=defaults.get("timeout_seconds", 10),
             default_health_path=defaults.get("health_path", "/health"),
             github=github,
+            supabase=supabase,
         )
