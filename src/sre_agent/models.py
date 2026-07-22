@@ -1,0 +1,105 @@
+"""Modelos de domínio do sre-agent."""
+
+from __future__ import annotations
+
+from dataclasses import dataclass, field
+from datetime import datetime, timezone
+from enum import Enum
+
+
+class HealthStatus(str, Enum):
+    """Estado de saúde de um serviço, do pior ao melhor."""
+
+    DOWN = "down"
+    DEGRADED = "degraded"
+    UNKNOWN = "unknown"
+    HEALTHY = "healthy"
+
+    @property
+    def emoji(self) -> str:
+        return {
+            HealthStatus.HEALTHY: "🟢",
+            HealthStatus.DEGRADED: "🟡",
+            HealthStatus.DOWN: "🔴",
+            HealthStatus.UNKNOWN: "⚪",
+        }[self]
+
+    @property
+    def severity(self) -> int:
+        """Ordena falhas primeiro (0 = mais grave)."""
+        return {
+            HealthStatus.DOWN: 0,
+            HealthStatus.DEGRADED: 1,
+            HealthStatus.UNKNOWN: 2,
+            HealthStatus.HEALTHY: 3,
+        }[self]
+
+
+@dataclass
+class ServiceHealth:
+    """Resultado da verificação de um único serviço."""
+
+    name: str
+    platform: str
+    url: str
+    status: HealthStatus
+    detail: str = ""
+    http_status: int | None = None
+    latency_ms: int | None = None
+    checked_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
+
+
+@dataclass
+class HealthReport:
+    """Snapshot da saúde de todos os serviços verificados numa execução."""
+
+    services: list[ServiceHealth]
+    started_at: datetime
+    finished_at: datetime
+
+    @property
+    def duration_ms(self) -> int:
+        return int((self.finished_at - self.started_at).total_seconds() * 1000)
+
+    def count(self, status: HealthStatus) -> int:
+        return sum(1 for s in self.services if s.status is status)
+
+    @property
+    def overall(self) -> HealthStatus:
+        if self.count(HealthStatus.DOWN):
+            return HealthStatus.DOWN
+        if self.count(HealthStatus.DEGRADED):
+            return HealthStatus.DEGRADED
+        if self.services and all(s.status is HealthStatus.HEALTHY for s in self.services):
+            return HealthStatus.HEALTHY
+        return HealthStatus.UNKNOWN
+
+    @property
+    def has_failures(self) -> bool:
+        return self.overall in (HealthStatus.DOWN, HealthStatus.DEGRADED)
+
+
+class ChangeKind(str, Enum):
+    """Tipo de evento na linha do tempo de mudanças."""
+
+    DEPLOY = "deploy"  # run do Actions — pode ser ALERTÁVEL (se falhou)
+    MERGE = "merge"    # PR mergeado — CONTEXTO para o RCA
+
+
+@dataclass
+class ChangeEvent:
+    """Um evento de mudança no sistema (deploy, merge). O "o que mudou" do RCA."""
+
+    kind: ChangeKind
+    repo: str
+    title: str
+    author: str
+    url: str
+    timestamp: datetime
+    ok: bool | None = None  # deploy: sucesso? | merge: None (não se aplica)
+    ref: str = ""           # branch ou base do PR
+
+    @property
+    def is_failed_deploy(self) -> bool:
+        """Único caso alertável: um deploy que falhou."""
+        return self.kind is ChangeKind.DEPLOY and self.ok is False

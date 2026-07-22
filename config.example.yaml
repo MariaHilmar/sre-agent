@@ -1,0 +1,49 @@
+# sre-agent — configuração de exemplo.
+#
+# Copie para config.yaml (gitignored) e ajuste para os SEUS serviços.
+# Você configura editando dados aqui — nunca mexendo no código.
+#
+#   cp config.example.yaml config.yaml
+
+# Valores padrão aplicados a todos os targets (podem ser sobrescritos por target).
+defaults:
+  timeout_seconds: 10
+  health_path: /health
+
+# Os serviços a monitorar. Adicionar um serviço = adicionar um item aqui.
+targets:
+  # Exemplo 1 — API com /health que retorna JSON (valida status + corpo).
+  - name: minha-api
+    platform: railway          # apenas um rótulo para o relatório
+    url: https://minha-api.up.railway.app
+    expect:
+      status: 200
+      json:                    # o /health precisa conter estes campos
+        status: healthy
+        database: ok
+
+  # Exemplo 2 — front-end estático (basta responder 200).
+  - name: meu-front
+    platform: vercel
+    url: https://meusite.vercel.app
+    expect:
+      status: 200
+
+  # Exemplo 3 — serviço com endpoint de health customizado.
+  - name: meu-worker
+    platform: railway
+    url: https://meu-worker.up.railway.app
+    health_path: /healthz      # sobrescreve o defaults.health_path
+    timeout_seconds: 20        # este serviço é mais lento
+    expect:
+      status: 200
+
+# Fase 1 — linha do tempo de mudanças (deploys + merges) via GitHub.
+# Usado pelo comando `sre-agent changes`. Token vazio = leitura pública
+# (rate-limited); para repos privados, defina GITHUB_TOKEN no .env.
+github:
+  token: ${GITHUB_TOKEN}
+  repos:
+    - meu-org/minha-api
+    - meu-org/meu-front
+  lookback_hours: 24

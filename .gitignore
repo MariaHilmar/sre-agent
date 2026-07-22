@@ -1,0 +1,28 @@
+# === Config real e segredos — NUNCA versionar ===
+config.yaml
+.env
+*.env
+!.env.example
+
+# === Python ===
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+env/
+*.egg-info/
+.eggs/
+dist/
+build/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+
+# === Editores / SO ===
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
