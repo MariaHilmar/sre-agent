@@ -100,6 +100,14 @@ class MemoryConfig:
 
 
 @dataclass
+class NotifyConfig:
+    """Configuração de notificação (Fase 2)."""
+
+    enabled: bool = False
+    slack_webhook: str = ""  # via ${SLACK_WEBHOOK_URL}
+
+
+@dataclass
 class Config:
     targets: list[Target]
     default_timeout: int = 10
@@ -110,6 +118,7 @@ class Config:
     railway: RailwayConfig | None = None
     llm: LLMConfig = field(default_factory=LLMConfig)
     memory: MemoryConfig = field(default_factory=MemoryConfig)
+    notify: NotifyConfig = field(default_factory=NotifyConfig)
 
     @classmethod
     def load(cls, path: str | Path) -> "Config":
@@ -177,6 +186,12 @@ class Config:
         mem_raw = raw.get("memory") or {}
         memory = MemoryConfig(path=mem_raw.get("path", "incidents.db"))
 
+        notify_raw = raw.get("notify") or {}
+        notify = NotifyConfig(
+            enabled=bool(notify_raw.get("enabled", False)),
+            slack_webhook=notify_raw.get("slack_webhook", ""),
+        )
+
         return cls(
             targets=targets,
             default_timeout=defaults.get("timeout_seconds", 10),
@@ -187,4 +202,5 @@ class Config:
             railway=railway,
             llm=llm,
             memory=memory,
+            notify=notify,
         )

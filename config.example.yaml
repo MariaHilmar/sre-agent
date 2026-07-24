@@ -78,3 +78,9 @@ llm:
 # Fase 1 — memória de incidentes (SQLite local, zero config).
 memory:
   path: incidents.db
+
+# Fase 2 — notificação. Só dispara quando há falha (nunca em estado saudável).
+# Use com `sre-agent check --notify`.
+notify:
+  enabled: false
+  slack_webhook: ${SLACK_WEBHOOK_URL}

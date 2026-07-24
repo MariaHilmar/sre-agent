@@ -13,6 +13,7 @@ from .agent import run_checks
 from .config import Config
 from .llm import build_llm
 from .memory import IncidentStore
+from .notify import build_notifier
 from .models import Incident
 from .rca import diagnose, evidence_summary, gather_evidence
 from .report import (
@@ -44,7 +45,8 @@ def main() -> None:
 @main.command()
 @_CONFIG_OPTION
 @click.option("--json", "as_json", is_flag=True, help="Saída em JSON (para CI/automação).")
-def check(config_path: Path, as_json: bool) -> None:
+@click.option("--notify", is_flag=True, help="Notificar (Slack) se houver falha.")
+def check(config_path: Path, as_json: bool, notify: bool) -> None:
     """Verifica a saúde de todos os serviços configurados.
 
     Sai com código 1 se qualquer serviço estiver DOWN ou DEGRADED — pronto
@@ -56,6 +58,14 @@ def check(config_path: Path, as_json: bool) -> None:
         raise SystemExit(2)
 
     report = asyncio.run(run_checks(config))
+
+    if notify and report.has_failures:
+        notifier = build_notifier(config.notify)
+        if notifier is not None:
+            notifier.send(
+                f"{report.overall.value.upper()} · saúde dos serviços",
+                summarize(report),
+            )
 
     if as_json:
         payload = {
