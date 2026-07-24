@@ -11,15 +11,17 @@ import click
 from . import __version__
 from .agent import run_checks
 from .config import Config
+from .approvals import ActionStore
 from .llm import build_llm
 from .memory import IncidentStore
 from .notify import build_notifier
-from .models import Incident
+from .models import Action, Incident
 from .rca import diagnose, evidence_summary, gather_evidence
 from .report import (
     print_advisories_summary,
     print_changes_summary,
     print_summary,
+    render_actions,
     render_advisories,
     render_table,
     render_timeline,
@@ -146,7 +148,11 @@ def advisors(config_path: Path) -> None:
     "--record/--no-record", default=True,
     help="Registrar os incidentes diagnosticados na memória (default: sim).",
 )
-def diagnose_cmd(config_path: Path, record: bool) -> None:
+@click.option(
+    "--propose", "propose_kind", default=None, metavar="TIPO",
+    help="Propor uma ação (ex.: rollback) na fila de aprovação para cada falha.",
+)
+def diagnose_cmd(config_path: Path, record: bool, propose_kind: str | None) -> None:
     """Diagnostica a causa raiz dos serviços com falha (RCA assistido por LLM).
 
     Roda o health check; para cada serviço DOWN/DEGRADED, reúne a evidência
@@ -163,6 +169,7 @@ def diagnose_cmd(config_path: Path, record: bool) -> None:
         raise SystemExit(0)
 
     store = IncidentStore(config.memory.path)
+    actions = ActionStore(config.memory.path) if propose_kind else None
     try:
         evidences = asyncio.run(gather_evidence(config, report, store))
         try:
@@ -184,7 +191,72 @@ def diagnose_cmd(config_path: Path, record: bool) -> None:
                         root_cause=root_cause,
                     )
                 )
+            if actions is not None:
+                proposed = actions.propose(
+                    Action(service=ev.service.name, kind=propose_kind, description=root_cause)
+                )
+                click.echo(f"-> ação #{proposed.id} proposta ({propose_kind}); aguarda aprovação")
+    finally:
+        store.close()
+        if actions is not None:
+            actions.close()
+
+    raise SystemExit(1)
+
+
+@main.command("propose")
+@_CONFIG_OPTION
+@click.option("--service", required=True, help="Serviço alvo.")
+@click.option("--kind", required=True, help="Tipo da ação (ex.: rollback, restart).")
+@click.option("--description", required=True, help="O que será feito / por quê.")
+def propose_cmd(config_path: Path, service: str, kind: str, description: str) -> None:
+    """Propõe uma ação na fila de aprovação (fica pendente até decisão humana)."""
+    config = Config.load(config_path)
+    store = ActionStore(config.memory.path)
+    try:
+        action = store.propose(Action(service=service, kind=kind, description=description))
+        click.echo(f"Ação #{action.id} proposta (pendente).")
     finally:
         store.close()
 
-    raise SystemExit(1)
+
+@main.command("actions")
+@_CONFIG_OPTION
+@click.option("--all", "show_all", is_flag=True, help="Mostrar todas (não só pendentes).")
+def actions_cmd(config_path: Path, show_all: bool) -> None:
+    """Lista as ações na fila de aprovação."""
+    config = Config.load(config_path)
+    store = ActionStore(config.memory.path)
+    try:
+        render_actions(store.all() if show_all else store.pending())
+    finally:
+        store.close()
+
+
+@main.command("approve")
+@_CONFIG_OPTION
+@click.argument("action_id", type=int)
+def approve_cmd(config_path: Path, action_id: int) -> None:
+    """Aprova uma ação pendente (não a executa — apenas libera)."""
+    _decide(config_path, action_id, approve=True)
+
+
+@main.command("reject")
+@_CONFIG_OPTION
+@click.argument("action_id", type=int)
+def reject_cmd(config_path: Path, action_id: int) -> None:
+    """Rejeita uma ação pendente."""
+    _decide(config_path, action_id, approve=False)
+
+
+def _decide(config_path: Path, action_id: int, approve: bool) -> None:
+    config = Config.load(config_path)
+    store = ActionStore(config.memory.path)
+    try:
+        action = store.approve(action_id) if approve else store.reject(action_id)
+        if action is None:
+            click.echo(f"Ação #{action_id} não encontrada ou já decidida.", err=True)
+            raise SystemExit(2)
+        click.echo(f"Ação #{action_id} -> {action.status.value}.")
+    finally:
+        store.close()
