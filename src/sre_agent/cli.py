@@ -10,12 +10,12 @@ import click
 
 from . import __version__
 from .agent import run_checks
-from .config import Config
 from .approvals import ActionStore
+from .config import Config
 from .llm import build_llm
 from .memory import IncidentStore
-from .notify import build_notifier
 from .models import Action, Incident
+from .notify import build_notifier
 from .rca import diagnose, evidence_summary, gather_evidence
 from .report import (
     print_advisories_summary,
@@ -176,7 +176,7 @@ def diagnose_cmd(config_path: Path, record: bool, propose_kind: str | None) -> N
             llm = build_llm(config.llm)
         except RuntimeError as exc:
             click.echo(str(exc), err=True)
-            raise SystemExit(2)
+            raise SystemExit(2) from exc
 
         for ev in evidences:
             click.echo(f"\n=== RCA · {ev.service.name} ({ev.service.status.value}) ===")

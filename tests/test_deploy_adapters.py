@@ -7,7 +7,6 @@ from sre_agent.config import RailwayConfig, VercelConfig
 from sre_agent.signals.railway import RailwayAdapter
 from sre_agent.signals.vercel import VercelAdapter
 
-
 # --- Vercel ---------------------------------------------------------------
 
 def _vercel_payload() -> dict:

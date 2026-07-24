@@ -20,7 +20,7 @@ dependencies = [
 
 [project.optional-dependencies]
 rca = ["anthropic>=0.40"]  # necessário só para o comando `diagnose` (RCA por LLM)
-dev = ["pytest>=9.1.1", "pytest-asyncio>=1.4.0", "respx>=0.21"]
+dev = ["pytest>=9.1.1", "pytest-asyncio>=1.4.0", "respx>=0.21", "ruff>=0.6"]
 
 [project.urls]
 Homepage = "https://github.com/MariaHilmar/sre-agent"
@@ -34,3 +34,10 @@ packages = ["src/sre_agent"]
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
 testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM"]

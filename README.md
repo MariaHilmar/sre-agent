@@ -4,11 +4,13 @@
 
 [![CI](https://github.com/MariaHilmar/sre-agent/actions/workflows/ci.yml/badge.svg)](https://github.com/MariaHilmar/sre-agent/actions/workflows/ci.yml)
 ![Python](https://img.shields.io/badge/python-3.10%2B-blue)
+![Coverage](https://img.shields.io/badge/coverage-90%25-brightgreen)
+![Ruff](https://img.shields.io/badge/lint-ruff-black)
 ![License](https://img.shields.io/badge/license-MIT-green)
 
-`sre-agent` observa a saúde dos seus serviços, detecta falhas e — nas próximas
-fases — diagnostica a causa raiz correlacionando deploys, merges e logs. Um
-plantonista de SRE que cabe num comando.
+`sre-agent` observa a saúde dos seus serviços, detecta falhas, correlaciona
+deploys e merges, e diagnostica a causa raiz com um LLM — propondo a próxima
+ação para você aprovar. Um plantonista de SRE que cabe num comando.
 
 O motor é **público e genérico**; a sua configuração (URLs, tokens) é **privada
 e fica fora do versionamento**. O mesmo código serve qualquer stack.
@@ -120,6 +122,22 @@ Sem `config.ci.yaml`, o passo é pulado e o job fica verde — nada quebra.
 
 ---
 
+## Comandos
+
+| Comando | O que faz | Fase |
+|---|---|---|
+| `check` | Health check paralelo dos serviços (`--json`, `--notify`) | 0 |
+| `changes` | Linha do tempo de deploys + merges (GitHub/Vercel/Railway) | 1 |
+| `advisors` | Advisors de segurança/performance do banco (Supabase) | 1 |
+| `diagnose` | RCA por LLM dos serviços com falha (`--propose <tipo>`) | 1 |
+| `actions` | Lista a fila de aprovação (`--all`) | 2 |
+| `propose` | Enfileira uma ação para aprovação | 2 |
+| `approve` / `reject` | Decide uma ação pendente | 2 |
+
+Todos os comandos que detectam falha saem com **código 1** — prontos para CI/cron.
+
+---
+
 ## Arquitetura
 
 Núcleo agnóstico + adapters por plataforma (ports & adapters). O núcleo não
@@ -167,8 +185,12 @@ uniforme. Adicionar uma plataforma = escrever um adapter, sem tocar no núcleo.
 
 ```bash
 pip install -e ".[dev]"
-pytest -q
+pytest -q                                  # testes (cobertura ~90%)
+ruff check src tests                       # lint
 ```
+
+Para experimentar cada comando na mão (sem segredos, com endpoints públicos),
+veja o [guia de teste manual](docs/TESTING.md).
 
 ## Licença
 
