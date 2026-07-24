@@ -130,7 +130,9 @@ uniforme. Adicionar uma plataforma = escrever um adapter, sem tocar no núcleo.
   - [x] 1.3 — adapters Railway (GraphQL) + Vercel (REST): status de deploy unificado na linha do tempo.
   - [x] 1.4 — loop de RCA: reúne evidência (mudanças + advisors + histórico) e diagnostica com Claude (`sre-agent diagnose`).
   - [x] 1.5 — memória de incidentes: histórico em SQLite, recuperado como contexto no RCA.
-- [ ] **Fase 2 — Notificação + human-in-the-loop**: Slack, agendamento, fila de aprovação.
+- [ ] **Fase 2 — Notificação + human-in-the-loop**
+  - [x] 2.1 — notificação Slack (via webhook), só dispara em falha (`sre-agent check --notify`).
+  - [ ] 2.2 — agendamento (cron/Actions) · 2.3 — fila de aprovação human-in-the-loop.
 - [ ] **Fase 3 — Multiagente + painel**: agentes especialistas, orquestrador, painel de controle (timeline, MTTR).
 
 ---
