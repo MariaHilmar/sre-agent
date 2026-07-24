@@ -121,7 +121,7 @@ class Config:
     notify: NotifyConfig = field(default_factory=NotifyConfig)
 
     @classmethod
-    def load(cls, path: str | Path) -> "Config":
+    def load(cls, path: str | Path) -> Config:
         raw = yaml.safe_load(Path(path).read_text(encoding="utf-8")) or {}
         raw = _expand_env(raw)
         defaults = raw.get("defaults") or {}

@@ -1,5 +1,4 @@
 import httpx
-import pytest
 import respx
 
 from sre_agent.checks.http import check_http
