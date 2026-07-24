@@ -12,15 +12,15 @@ license = "MIT"
 authors = [{ name = "MariaHilmar" }]
 keywords = ["sre", "aiops", "monitoring", "healthcheck", "railway", "vercel", "supabase", "devops"]
 dependencies = [
-  "httpx>=0.27",
+  "httpx>=0.28.1",
   "pyyaml>=6.0",
-  "rich>=13.7",
-  "click>=8.1",
+  "rich>=15.0.0",
+  "click>=8.4.2",
 ]
 
 [project.optional-dependencies]
 rca = ["anthropic>=0.40"]  # necessário só para o comando `diagnose` (RCA por LLM)
-dev = ["pytest>=8.0", "pytest-asyncio>=0.23", "respx>=0.21"]
+dev = ["pytest>=9.1.1", "pytest-asyncio>=1.4.0", "respx>=0.21"]
 
 [project.urls]
 Homepage = "https://github.com/MariaHilmar/sre-agent"
