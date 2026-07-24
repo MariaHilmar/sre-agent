@@ -29,7 +29,9 @@ jobs:
         with:
           python-version: "3.12"
       - name: Instalar
-        run: pip install -e .
+        # NOSONAR: instala o próprio pacote (first-party, confiável); as
+        # dependências vêm do pyproject deste repositório, não de terceiros.
+        run: pip install -e . # NOSONAR
       - name: Health check + notificação
         if: hashFiles('config.ci.yaml') != ''
         env:
