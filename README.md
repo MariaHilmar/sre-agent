@@ -70,7 +70,15 @@ sre-agent check --json          # saída JSON para automação
 sre-agent changes               # linha do tempo de deploys e merges (Fase 1)
 sre-agent advisors              # advisors de saúde do banco (Fase 1)
 sre-agent diagnose              # RCA por LLM dos serviços com falha (Fase 1)
+sre-agent actions               # fila de aprovação (Fase 2)
+sre-agent approve <id>          # aprova uma ação pendente (não executa)
 ```
+
+### Human-in-the-loop
+
+O agente **nunca executa ação sozinho**. Ele *propõe* (ex.: `diagnose --propose rollback`),
+a ação fica **pendente** em `sre-agent actions`, e só um `approve`/`reject` humano
+decide. Aprovar apenas libera — a execução em si é decisão explícita (Fase 3).
 
 > `diagnose` precisa do extra de RCA e de uma chave: `pip install "sre-agent[rca]"`
 > e `ANTHROPIC_API_KEY` no ambiente.
@@ -140,10 +148,10 @@ uniforme. Adicionar uma plataforma = escrever um adapter, sem tocar no núcleo.
   - [x] 1.3 — adapters Railway (GraphQL) + Vercel (REST): status de deploy unificado na linha do tempo.
   - [x] 1.4 — loop de RCA: reúne evidência (mudanças + advisors + histórico) e diagnostica com Claude (`sre-agent diagnose`).
   - [x] 1.5 — memória de incidentes: histórico em SQLite, recuperado como contexto no RCA.
-- [ ] **Fase 2 — Notificação + human-in-the-loop**
+- [x] **Fase 2 — Notificação + human-in-the-loop**
   - [x] 2.1 — notificação Slack (via webhook), só dispara em falha (`sre-agent check --notify`).
   - [x] 2.2 — agendamento: workflow `Monitor` (cron/Actions) roda o check e notifica sozinho.
-  - [ ] 2.3 — fila de aprovação human-in-the-loop.
+  - [x] 2.3 — fila de aprovação: o agente propõe, o humano aprova/rejeita (`actions`/`approve`/`reject`).
 - [ ] **Fase 3 — Multiagente + painel**: agentes especialistas, orquestrador, painel de controle (timeline, MTTR).
 
 ---

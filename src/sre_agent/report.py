@@ -14,6 +14,8 @@ from rich.console import Console
 from rich.table import Table
 
 from .models import (
+    Action,
+    ActionStatus,
     Advisory,
     AdvisoryLevel,
     ChangeEvent,
@@ -195,6 +197,35 @@ def print_advisories_summary(advisories: list[Advisory]) -> None:
     _console.print(f"[bold {color}]{summary.splitlines()[0]}[/]")
     for line in summary.splitlines()[1:]:
         _console.print(line)
+
+
+_ACTION_COLOR = {
+    ActionStatus.PENDING: "yellow",
+    ActionStatus.APPROVED: "green",
+    ActionStatus.REJECTED: "red",
+}
+
+
+def render_actions(actions: list[Action]) -> None:
+    if not actions:
+        _console.print("Nenhuma ação na fila.")
+        return
+    table = Table(title="sre-agent · fila de aprovação")
+    table.add_column("ID", justify="right")
+    table.add_column("Estado")
+    table.add_column("Serviço", style="bold")
+    table.add_column("Tipo")
+    table.add_column("Descrição")
+
+    for a in actions:
+        table.add_row(
+            str(a.id),
+            f"[{_ACTION_COLOR[a.status]}]{a.status.value}[/]",
+            a.service,
+            a.kind,
+            a.description,
+        )
+    _console.print(table)
 
 
 def print_summary(report: HealthReport) -> None:

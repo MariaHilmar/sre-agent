@@ -141,3 +141,27 @@ class Incident:
     resolved: bool = False
     created_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
     id: int | None = None
+
+
+class ActionStatus(str, Enum):
+    """Estado de uma ação proposta na fila de aprovação (human-in-the-loop)."""
+
+    PENDING = "pending"
+    APPROVED = "approved"
+    REJECTED = "rejected"
+
+
+@dataclass
+class Action:
+    """Uma ação proposta pelo agente, que aguarda decisão humana.
+
+    O agente NUNCA executa sozinho: propõe, e um humano aprova ou rejeita.
+    """
+
+    service: str
+    kind: str          # ex.: "rollback", "restart", "runbook"
+    description: str   # o que será feito / por quê
+    status: ActionStatus = ActionStatus.PENDING
+    created_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
+    decided_at: datetime | None = None
+    id: int | None = None
