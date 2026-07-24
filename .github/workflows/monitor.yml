@@ -1,0 +1,39 @@
+name: Monitor
+
+# Monitoramento proativo: roda o health check em intervalo fixo e notifica no
+# Slack se algo estiver fora do ar. Também pode ser disparado manualmente.
+#
+# Requer:
+#   - um arquivo `config.ci.yaml` versionado (URLs dos serviços; SEM segredos —
+#     tokens via ${VAR}). Se ele não existir, o passo é pulado (job fica verde).
+#   - o secret SLACK_WEBHOOK_URL no repositório (Settings > Secrets > Actions).
+
+on:
+  schedule:
+    - cron: "0 * * * *"   # de hora em hora — ajuste conforme a necessidade
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: monitor-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  monitor:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+      - name: Instalar
+        # NOSONAR: instala o próprio pacote (first-party, confiável); as
+        # dependências vêm do pyproject deste repositório, não de terceiros.
+        run: pip install -e . # NOSONAR
+      - name: Health check + notificação
+        if: hashFiles('config.ci.yaml') != ''
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        run: sre-agent check --notify --config config.ci.yaml
