@@ -100,6 +100,16 @@ portão de qualidade pós-deploy:
 - run: sre-agent check --config config.yaml
 ```
 
+### Monitoramento agendado
+
+O workflow [`Monitor`](.github/workflows/monitor.yml) roda o health check de hora
+em hora (cron) e notifica no Slack se algo cair. Para ativar:
+
+1. Versione um `config.ci.yaml` com os serviços (URLs públicas; sem segredos).
+2. Adicione o secret `SLACK_WEBHOOK_URL` no repositório.
+
+Sem `config.ci.yaml`, o passo é pulado e o job fica verde — nada quebra.
+
 ---
 
 ## Arquitetura
@@ -132,7 +142,8 @@ uniforme. Adicionar uma plataforma = escrever um adapter, sem tocar no núcleo.
   - [x] 1.5 — memória de incidentes: histórico em SQLite, recuperado como contexto no RCA.
 - [ ] **Fase 2 — Notificação + human-in-the-loop**
   - [x] 2.1 — notificação Slack (via webhook), só dispara em falha (`sre-agent check --notify`).
-  - [ ] 2.2 — agendamento (cron/Actions) · 2.3 — fila de aprovação human-in-the-loop.
+  - [x] 2.2 — agendamento: workflow `Monitor` (cron/Actions) roda o check e notifica sozinho.
+  - [ ] 2.3 — fila de aprovação human-in-the-loop.
 - [ ] **Fase 3 — Multiagente + painel**: agentes especialistas, orquestrador, painel de controle (timeline, MTTR).
 
 ---
