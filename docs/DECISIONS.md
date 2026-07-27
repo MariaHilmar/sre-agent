@@ -12,7 +12,7 @@ aqui fica o "por quê".
 ## ADR-001 — Orquestrador `triage` (Fase 3.1)
 
 - **Data:** 2026-07-27
-- **Status:** aceito, a implementar
+- **Status:** ✅ implementado (comando `sre-agent triage`)
 - **Fase:** 3.1 (pré-requisito de 3.2 agentes especialistas e 3.4 painel)
 
 ### Contexto
@@ -68,7 +68,7 @@ Entregas:
 ## ADR-002 — Deduplicação de ações abertas
 
 - **Data:** 2026-07-27
-- **Status:** aceito, a implementar junto com a Fase 3.1
+- **Status:** ✅ implementado (`ActionStore.propose_unique`)
 
 ### Contexto
 
