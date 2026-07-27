@@ -71,6 +71,18 @@ sre-agent actions  --config config.demo.yaml --all
 Esperado: a ação some das pendentes após aprovar; `--all` mostra o histórico.
 Aprovar de novo retorna exit code 2 (já decidida).
 
+### `triage` — o ciclo do agente (sem segredo, com degradação graciosa)
+
+```bash
+sre-agent triage --config config.demo.yaml --no-propose
+```
+Esperado: a tabela de saúde + um bloco de RCA por serviço com falha. **Sem**
+`ANTHROPIC_API_KEY`, o RCA é pulado com um aviso (`⚠ Sem LLM disponível...`) e o
+comando ainda sai com **exit code 1** — não quebra. Com a chave (`pip install
+".[rca]"`), o bloco de RCA traz a causa raiz e uma ação `runbook` é enfileirada.
+Rodar de novo com o mesmo serviço caído **não duplica** a ação (dedup). `--json`
+dá a saída estruturada; `--notify` manda o resumo ao Slack se configurado.
+
 ## Comandos que exigem credenciais
 
 | Comando | Precisa de | Como habilitar |
