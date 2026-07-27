@@ -56,6 +56,27 @@ class ActionStore:
         action.id = cur.lastrowid
         return action
 
+    def find_pending(self, service: str, kind: str) -> Action | None:
+        """Ação PENDING existente para (service, kind) — base da deduplicação."""
+        row = self._conn.execute(
+            "SELECT * FROM actions WHERE service = ? AND kind = ? AND status = ? "
+            "ORDER BY created_at LIMIT 1",
+            (service, kind, ActionStatus.PENDING.value),
+        ).fetchone()
+        return self._to_action(row) if row else None
+
+    def propose_unique(self, action: Action) -> tuple[Action, bool]:
+        """Propõe deduplicando: se já há uma ação pendente para (service, kind),
+        devolve a existente em vez de criar outra.
+
+        Evita que o triage sob cron polua a fila com propostas idênticas enquanto
+        o serviço segue caído. Retorna (ação, é_nova).
+        """
+        existing = self.find_pending(action.service, action.kind)
+        if existing is not None:
+            return existing, False
+        return self.propose(action), True
+
     def pending(self) -> list[Action]:
         rows = self._conn.execute(
             "SELECT * FROM actions WHERE status = ? ORDER BY created_at",

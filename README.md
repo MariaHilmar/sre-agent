@@ -72,6 +72,7 @@ sre-agent check --json          # saída JSON para automação
 sre-agent changes               # linha do tempo de deploys e merges (Fase 1)
 sre-agent advisors              # advisors de saúde do banco (Fase 1)
 sre-agent diagnose              # RCA por LLM dos serviços com falha (Fase 1)
+sre-agent triage                # ciclo completo: coleta → RCA → proposta (Fase 3)
 sre-agent actions               # fila de aprovação (Fase 2)
 sre-agent approve <id>          # aprova uma ação pendente (não executa)
 ```
@@ -130,6 +131,7 @@ Sem `config.ci.yaml`, o passo é pulado e o job fica verde — nada quebra.
 | `changes` | Linha do tempo de deploys + merges (GitHub/Vercel/Railway) | 1 |
 | `advisors` | Advisors de segurança/performance do banco (Supabase) | 1 |
 | `diagnose` | RCA por LLM dos serviços com falha (`--propose <tipo>`) | 1 |
+| `triage` | Ciclo do agente: coleta → RCA → proposta, num comando (`--json`, `--notify`, `--no-propose`) | 3 |
 | `actions` | Lista a fila de aprovação (`--all`) | 2 |
 | `propose` | Enfileira uma ação para aprovação | 2 |
 | `approve` / `reject` | Decide uma ação pendente | 2 |
@@ -170,7 +172,11 @@ uniforme. Adicionar uma plataforma = escrever um adapter, sem tocar no núcleo.
   - [x] 2.1 — notificação Slack (via webhook), só dispara em falha (`sre-agent check --notify`).
   - [x] 2.2 — agendamento: workflow `Monitor` (cron/Actions) roda o check e notifica sozinho.
   - [x] 2.3 — fila de aprovação: o agente propõe, o humano aprova/rejeita (`actions`/`approve`/`reject`).
-- [ ] **Fase 3 — Multiagente + painel**: agentes especialistas, orquestrador, painel de controle (timeline, MTTR).
+- [ ] **Fase 3 — Multiagente + painel**
+  - [x] 3.1 — orquestrador: um comando encadeia coleta → RCA → proposta (dedup de ações), com saída estruturada (`sre-agent triage`).
+  - [ ] 3.2 — agentes especialistas por domínio (infra, banco) atrás da interface uniforme.
+  - [ ] 3.3 — métricas de incidente (MTTR) a partir da memória.
+  - [ ] 3.4 — painel de controle (timeline, MTTR).
 
 ---
 

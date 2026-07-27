@@ -143,6 +143,16 @@ class Incident:
     id: int | None = None
 
 
+@dataclass
+class TriageOutcome:
+    """Resultado do triage para um único serviço com falha (Fase 3.1)."""
+
+    service: ServiceHealth
+    root_cause: str = ""          # vazio quando o RCA não rodou (sem LLM)
+    action: Action | None = None  # ação enfileirada (ou reaproveitada por dedup)
+    action_is_new: bool = True    # False = reaproveitou ação pendente existente
+
+
 class ActionStatus(str, Enum):
     """Estado de uma ação proposta na fila de aprovação (human-in-the-loop)."""
 
@@ -165,3 +175,21 @@ class Action:
     created_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
     decided_at: datetime | None = None
     id: int | None = None
+
+
+@dataclass
+class TriageResult:
+    """Resultado de um ciclo completo do agente (Fase 3.1).
+
+    O orquestrador `triage` compõe coleta → RCA → proposta num só resultado
+    estruturado — a base do painel (3.4) e da saída `--json`.
+    """
+
+    report: HealthReport
+    outcomes: list[TriageOutcome] = field(default_factory=list)
+    diagnosed: bool = False       # houve RCA por LLM? (False = tudo ok ou sem LLM)
+    notes: list[str] = field(default_factory=list)  # avisos (ex.: fonte ausente)
+
+    @property
+    def has_failures(self) -> bool:
+        return self.report.has_failures

@@ -22,6 +22,7 @@ from .models import (
     ChangeKind,
     HealthReport,
     HealthStatus,
+    TriageResult,
 )
 
 _console = Console()
@@ -226,6 +227,47 @@ def render_actions(actions: list[Action]) -> None:
             a.description,
         )
     _console.print(table)
+
+
+def summarize_triage(result: TriageResult) -> str:
+    """Resumo textual do ciclo (para Slack e para o corpo de `--json`)."""
+    lines = [summarize(result.report)]
+    for o in result.outcomes:
+        if o.root_cause:
+            lines.append(f"\n▸ {o.service.name}: {o.root_cause}")
+        if o.action is not None:
+            tag = "proposta" if o.action_is_new else "já pendente"
+            lines.append(f"  ação #{o.action.id} ({o.action.kind}) — {tag}, aguarda aprovação")
+    for note in result.notes:
+        lines.append(f"⚠ {note}")
+    return "\n".join(lines)
+
+
+def render_triage(result: TriageResult) -> None:
+    """Visão consolidada do ciclo: saúde + RCA + ações propostas."""
+    render_table(result.report)
+    print_summary(result.report)
+    if not result.report.has_failures:
+        return
+
+    _console.print()
+    for o in result.outcomes:
+        _console.print(
+            f"[bold]=== RCA · {o.service.name} ({o.service.status.value}) ===[/]"
+        )
+        if o.root_cause:
+            _console.print(o.root_cause)
+        else:
+            _console.print("[yellow](RCA não executado)[/]")
+        if o.action is not None:
+            tag = "proposta" if o.action_is_new else "já pendente (dedup)"
+            _console.print(
+                f"-> ação #{o.action.id} ({o.action.kind}) — {tag}; aguarda aprovação"
+            )
+        _console.print()
+    warn = "⚠" if _emoji_ok() else "!"
+    for note in result.notes:
+        _console.print(f"[yellow]{warn} {note}[/]")
 
 
 def print_summary(report: HealthReport) -> None:
