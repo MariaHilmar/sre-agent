@@ -119,3 +119,64 @@ consciente e separada, feita **depois** da dedup (ADR-002) estar no lugar.
   controle (zero até rodar `triage` na mão); sem ruído.
 - **Contra:** o monitor automático ainda não faz RCA sozinho — autonomia total
   fica para a etapa seguinte. Aceito conscientemente.
+
+---
+
+## ADR-004 — Foco nas 3 plataformas, aprofundar em vez de alargar
+
+- **Data:** 2026-07-27
+- **Status:** aceito
+- **Fase:** direciona a Fase 3 (3.2 a 3.4) e a Fase 4
+
+### Contexto
+
+O sre-agent monitora hoje o essencial de Supabase, Vercel e Railway: saúde HTTP,
+status de deploy, advisors do banco, linha do tempo de mudanças. Surgiu a questão
+de para onde crescer. A referência analisada foi o [HolmesGPT](https://github.com/HolmesGPT/holmesgpt)
+(CNCF Sandbox): um agente de RCA **agêntico** (o LLM decide o que investigar, em
+loop), com 50+ toolsets cloud-native (K8s, Prometheus, Datadog…), escala petabyte
+e operador in-cluster.
+
+### Decisão
+
+**Manter o foco nas três plataformas (Supabase, Vercel, Railway) e crescer em
+PROFUNDIDADE, não em largura.** Ou seja: extrair mais sinal das APIs que já
+usamos, em vez de adicionar novas plataformas.
+
+Ordem de valor decidida:
+
+1. **Logs como evidência** (3.2) — puxar logs de erro recentes (janela limitada)
+   para o `gather_evidence`. Maior retorno: hoje o LLM diagnostica sem ver o log
+   que explica a falha. Continua **determinístico** (nós definimos a janela e a
+   busca) — não vira RCA agêntico.
+2. **Ciclo de vida + quotas** (3.3) — estado do projeto/serviço (pausado,
+   crash-loop), quota (egress/storage) e validade de SSL, com thresholds no YAML.
+   Torna o agente **preventivo** (DEGRADED antes de DOWN), não só reativo.
+3. **Runbooks no YAML** (3.4) — contexto estruturado por serviço/falha injetado
+   no prompt de RCA.
+
+### O que adotamos do HolmesGPT (como ideia)
+
+- **Toolsets declarativos** (Fase 4.1): fontes de sinal registradas via config,
+  não fixas no código — evolução natural do nosso ports-and-adapters.
+- **Runbooks estruturados** (3.4): telemetria + LLM + runbook.
+- **LLM-agnóstico**: expor OpenAI/Gemini/Ollama atrás do `build_llm` já existente
+  (Ollama local atende o público indie sem custo de API). Candidato a quick win.
+
+### O que NÃO adotamos (não-objetivos)
+
+- **RCA totalmente agêntico** — mantemos a evidência determinística: previsível,
+  barata, testável. O LLM raciocina; ele não dirige a coleta.
+- **Novas plataformas / K8s / Prometheus** — fora do nicho PaaS.
+- **Escala petabyte, operador in-cluster, PRs automáticos de fix** — violam o
+  "cabe num comando" e o human-in-the-loop (propõe, nunca executa).
+- **Métricas de série temporal (estilo Datadog)** — puxaria o projeto para
+  coletor de métricas com storage; adiado indefinidamente.
+
+### Consequências
+
+- **A favor:** cada incremento reforça o diferencial (config-driven, determinístico,
+  human-in-the-loop) e melhora o RCA que já existe; escopo permanece enxuto e
+  demonstrável num portfólio.
+- **Contra:** o agente não serve stacks fora de Supabase/Vercel/Railway — decisão
+  consciente de nicho, não de limitação.

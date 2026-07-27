@@ -172,11 +172,16 @@ uniforme. Adicionar uma plataforma = escrever um adapter, sem tocar no núcleo.
   - [x] 2.1 — notificação Slack (via webhook), só dispara em falha (`sre-agent check --notify`).
   - [x] 2.2 — agendamento: workflow `Monitor` (cron/Actions) roda o check e notifica sozinho.
   - [x] 2.3 — fila de aprovação: o agente propõe, o humano aprova/rejeita (`actions`/`approve`/`reject`).
-- [ ] **Fase 3 — Multiagente + painel**
+- [ ] **Fase 3 — Orquestração + monitoramento profundo** (foco: aprofundar Supabase/Vercel/Railway, ver [ADR-004](docs/DECISIONS.md))
   - [x] 3.1 — orquestrador: um comando encadeia coleta → RCA → proposta (dedup de ações), com saída estruturada (`sre-agent triage`).
-  - [ ] 3.2 — agentes especialistas por domínio (infra, banco) atrás da interface uniforme.
-  - [ ] 3.3 — métricas de incidente (MTTR) a partir da memória.
-  - [ ] 3.4 — painel de controle (timeline, MTTR).
+  - [ ] 3.2 — logs como evidência: adapters de log (Supabase/Vercel/Railway) numa janela limitada, injetados no RCA determinístico.
+  - [ ] 3.3 — checks de ciclo de vida e quotas: estado do projeto/serviço (pausado, crash-loop), limites de quota e validade de SSL declarados no YAML — viram DEGRADED preventivo antes de virar DOWN.
+  - [ ] 3.4 — runbooks no YAML: contexto estruturado por serviço/tipo de falha injetado no prompt de RCA.
+- [ ] **Fase 4 — Multiagente + painel**
+  - [ ] 4.1 — toolsets declarativos: fontes de sinal registradas via config (não código), base dos agentes especialistas.
+  - [ ] 4.2 — agentes especialistas por domínio (infra, banco) atrás da interface uniforme.
+  - [ ] 4.3 — métricas de incidente (MTTR) a partir da memória.
+  - [ ] 4.4 — painel de controle (timeline, MTTR).
 
 ---
 
