@@ -9,7 +9,7 @@ from pathlib import Path
 import click
 
 from . import __version__
-from .agent import run_checks
+from .agent import run_checks, triage
 from .approvals import ActionStore
 from .config import Config
 from .llm import build_llm
@@ -25,7 +25,9 @@ from .report import (
     render_advisories,
     render_table,
     render_timeline,
+    render_triage,
     summarize,
+    summarize_triage,
 )
 from .signals.supabase import SupabaseAdapter
 from .signals.timeline import gather_changes, has_change_source
@@ -202,6 +204,87 @@ def diagnose_cmd(config_path: Path, record: bool, propose_kind: str | None) -> N
             actions.close()
 
     raise SystemExit(1)
+
+
+@main.command("triage")
+@_CONFIG_OPTION
+@click.option("--json", "as_json", is_flag=True, help="Saída em JSON (para CI/painel).")
+@click.option("--notify", is_flag=True, help="Notificar (Slack) se houver falha.")
+@click.option(
+    "--propose", "propose_kind", default="runbook", show_default=True, metavar="TIPO",
+    help="Tipo da ação proposta automaticamente para cada falha.",
+)
+@click.option("--no-propose", is_flag=True, help="Não propor ações automaticamente.")
+@click.option(
+    "--record/--no-record", default=True,
+    help="Registrar os incidentes diagnosticados na memória (default: sim).",
+)
+def triage_cmd(
+    config_path: Path, as_json: bool, notify: bool,
+    propose_kind: str, no_propose: bool, record: bool,
+) -> None:
+    """Roda o ciclo completo do agente: coleta, RCA e proposta.
+
+    Verifica a saúde; para cada serviço DOWN/DEGRADED, reúne a evidência,
+    diagnostica com o LLM, registra o incidente e enfileira uma ação (dedup) para
+    aprovação. Nunca executa nada. Sai com código 1 se houver falha — pronto para
+    cron. Degrada com elegância sem LLM ou sem fontes de contexto.
+    """
+    config = Config.load(config_path)
+    if not config.targets:
+        click.echo("Nenhum target configurado em " + str(config_path), err=True)
+        raise SystemExit(2)
+
+    # LLM opcional: sem chave/pacote, o ciclo segue sem RCA (não quebra a CLI).
+    try:
+        llm = build_llm(config.llm)
+    except Exception:  # noqa: BLE001 - degrada graciosamente sem LLM
+        llm = None
+
+    kind = None if no_propose else propose_kind
+    incidents = IncidentStore(config.memory.path)
+    actions = ActionStore(config.memory.path)
+    try:
+        result = asyncio.run(
+            triage(
+                config, llm=llm, incidents=incidents, actions=actions,
+                propose_kind=kind, record=record,
+            )
+        )
+    finally:
+        incidents.close()
+        actions.close()
+
+    if notify and result.has_failures:
+        notifier = build_notifier(config.notify)
+        if notifier is not None:
+            notifier.send(
+                f"{result.report.overall.value.upper()} · triage",
+                summarize_triage(result),
+            )
+
+    if as_json:
+        payload = {
+            "overall": result.report.overall.value,
+            "diagnosed": result.diagnosed,
+            "notes": result.notes,
+            "outcomes": [
+                {
+                    "service": o.service.name,
+                    "status": o.service.status.value,
+                    "root_cause": o.root_cause,
+                    "action_id": o.action.id if o.action else None,
+                    "action_kind": o.action.kind if o.action else None,
+                    "action_is_new": o.action_is_new if o.action else None,
+                }
+                for o in result.outcomes
+            ],
+        }
+        click.echo(_json.dumps(payload, ensure_ascii=False, indent=2))
+    else:
+        render_triage(result)
+
+    raise SystemExit(1 if result.has_failures else 0)
 
 
 @main.command("propose")
